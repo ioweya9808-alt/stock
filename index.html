@@ -1,136 +1,50 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
-    <title>互動式分數分配板</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Presentation Colors -->
-    <!-- Application Structure Plan: The SPA is designed as a single-view interactive slide to directly mirror the user's source image. The top row (subjects) acts as static drop zones, while the lower two rows (scores and grades) are placed in 'holding areas' with draggable items. This structure transforms the static slide into an interactive tool for score allocation, allowing users to drag and drop scores/grades into subject columns. This task-oriented design is highly intuitive because it directly maps to the visual metaphor of 'allocating' points. -->
-    <!-- Visualization & Content Choices: Report Info: Static score/grade blocks -> Goal: Organize/Allocate -> Presentation: Draggable HTML divs in flexbox containers -> Interaction: User drags a score/grade from a holding area and drops it into a subject column -> Justification: This provides a direct manipulation interface, making the abstract concept of score distribution tangible and interactive. It's a more effective learning/planning tool than a static image. The HTML5 Drag and Drop API is used for its simplicity and lack of external dependencies for this specific task. NO SVG/Mermaid used. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
-    <style>
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f0f4f0;
-        }
-        .main-container {
-            background-color: #fefef2;
-            border: 20px solid transparent;
-            border-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cstyle%3E.s%7Bfill:none;stroke:%23dce5d8;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;%7D%3C/style%3E%3Cpath class='s' d='M0 50 C25 25, 75 25, 100 50'/%3E%3Cpath class='s' d='M0 60 C25 35, 75 35, 100 60'/%3E%3C/svg%3E") 30 round;
-        }
-        .draggable {
-            cursor: move;
-            transition: all 0.2s ease-in-out;
-        }
-        .dragging {
-            opacity: 0.5;
-            transform: scale(1.05);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        .drop-zone {
-            transition: background-color 0.3s;
-        }
-        .drag-over {
-            background-color: #e0f2fe !important; /* light-blue-100 */
-        }
-        .subject-column {
-            min-height: 150px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>佳凌型態操作判斷工具</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    h2 { color: #333; }
+    label { display: block; margin-top: 10px; }
+    input { padding: 5px; width: 150px; }
+    button { margin-top: 15px; padding: 8px 15px; background: #0078d7; color: #fff; border: none; cursor: pointer; }
+    button:hover { background: #005a9e; }
+    .result { margin-top: 20px; font-weight: bold; color: #444; }
+  </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<body>
+  <h2>佳凌型態操作判斷工具</h2>
+  <label>輸入股價：</label>
+  <input type="number" id="price" step="0.1">
+  <label>輸入成交量（張）：</label>
+  <input type="number" id="volume">
+  <button onclick="analyze()">判斷型態</button>
 
-    <div class="main-container w-full max-w-5xl p-8 rounded-lg shadow-xl">
-        <h1 class="text-4xl font-bold text-center text-gray-700 mb-12">目標18分，分配分數</h1>
+  <div class="result" id="result"></div>
 
-        <div class="grid grid-cols-5 gap-4 mb-8">
-            <!-- Subject Headers / Drop Zones -->
-            <div class="text-center font-bold text-xl text-white bg-yellow-400 border-2 border-gray-600 rounded-md py-2">國文</div>
-            <div class="text-center font-bold text-xl text-white bg-pink-500 border-2 border-gray-600 rounded-md py-2">數學</div>
-            <div class="text-center font-bold text-xl text-white bg-blue-500 border-2 border-gray-600 rounded-md py-2">英語</div>
-            <div class="text-center font-bold text-xl text-white bg-orange-500 border-2 border-gray-600 rounded-md py-2">社會</div>
-            <div class="text-center font-bold text-xl text-white bg-purple-500 border-2 border-gray-600 rounded-md py-2">自然</div>
-        </div>
+  <script>
+    function analyze() {
+      const price = parseFloat(document.getElementById("price").value);
+      const volume = parseInt(document.getElementById("volume").value);
+      let result = "";
 
-        <div class="grid grid-cols-5 gap-4">
-            <!-- Subject Columns / Drop Zones -->
-            <div class="subject-column drop-zone bg-gray-100 rounded-md p-2 flex flex-col items-center space-y-2" data-zone-id="col-0"></div>
-            <div class="subject-column drop-zone bg-gray-100 rounded-md p-2 flex flex-col items-center space-y-2" data-zone-id="col-1"></div>
-            <div class="subject-column drop-zone bg-gray-100 rounded-md p-2 flex flex-col items-center space-y-2" data-zone-id="col-2"></div>
-            <div class="subject-column drop-zone bg-gray-100 rounded-md p-2 flex flex-col items-center space-y-2" data-zone-id="col-3"></div>
-            <div class="subject-column drop-zone bg-gray-100 rounded-md p-2 flex flex-col items-center space-y-2" data-zone-id="col-4"></div>
-        </div>
-        
-        <hr class="my-8 border-gray-300">
+      if (price < 28 && volume > 1000) {
+        result = "空方延伸型態：不宜進場，觀望。";
+      } else if (price >= 32.9 && volume > 1500) {
+        result = "突破型態：可短線進場，設停損32元。";
+      } else if (price >= 30 && price <= 31 && volume < 800) {
+        result = "震盪整理型態：觀望，等待方向明朗。";
+      } else if (price >= 28.5 && price <= 29 && volume < 600) {
+        result = "多方防守型態：可小量試單，守28元停損。";
+      } else if (price > 29 && price < 30 && volume < 700) {
+        result = "反彈型態：回測支撐不破，可進場，突破30元放量可加碼。";
+      } else {
+        result = "尚未形成明確型態，請持續觀察。";
+      }
 
-        <div class="space-y-6">
-            <div>
-                <h2 class="text-lg font-semibold text-gray-600 mb-2 text-center">分數</h2>
-                <div id="scores-pool" class="drop-zone min-h-[7rem] bg-gray-200 rounded-md p-4 flex justify-center items-center flex-wrap gap-4">
-                    <div id="score-1" draggable="true" class="draggable w-24 text-center font-bold text-2xl text-black bg-yellow-300 border-2 border-gray-800 rounded-md py-3">3分</div>
-                    <div id="score-2" draggable="true" class="draggable w-24 text-center font-bold text-2xl text-white bg-pink-500 border-2 border-gray-800 rounded-md py-3">2分</div>
-                    <div id="score-3" draggable="true" class="draggable w-24 text-center font-bold text-2xl text-white bg-blue-500 border-2 border-gray-800 rounded-md py-3">4分</div>
-                    <div id="score-4" draggable="true" class="draggable w-24 text-center font-bold text-2xl text-white bg-orange-500 border-2 border-gray-800 rounded-md py-3">4分</div>
-                    <div id="score-5" draggable="true" class="draggable w-24 text-center font-bold text-2xl text-white bg-purple-500 border-2 border-gray-800 rounded-md py-3">5分</div>
-                </div>
-            </div>
-
-            <div>
-                <h2 class="text-lg font-semibold text-gray-600 mb-2 text-center">等級</h2>
-                <div id="grades-pool" class="drop-zone min-h-[7rem] bg-gray-200 rounded-md p-4 flex justify-center items-center flex-wrap gap-4">
-                    <div id="grade-1" draggable="true" class="draggable w-24 text-center font-bold text-2xl text-black bg-yellow-300 border-2 border-gray-800 rounded-md py-3">B+</div>
-                    <div id="grade-2" draggable="true" class="draggable w-24 text-center font-bold text-2xl text-white bg-pink-500 border-2 border-gray-800 rounded-md py-3">B</div>
-                    <div id="grade-3" draggable="true" class="draggable w-24 text-center font-bold text-2xl text-white bg-blue-500 border-2 border-gray-800 rounded-md py-3">B++</div>
-                    <div id="grade-4" draggable="true" class="draggable w-24 text-center font-bold text-2xl text-white bg-orange-500 border-2 border-gray-800 rounded-md py-3">B++</div>
-                    <div id="grade-5" draggable="true" class="draggable w-24 text-center font-bold text-2xl text-white bg-purple-500 border-2 border-gray-800 rounded-md py-3">A</div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const draggables = document.querySelectorAll('.draggable');
-            const dropZones = document.querySelectorAll('.drop-zone');
-
-            draggables.forEach(draggable => {
-                draggable.addEventListener('dragstart', (e) => {
-                    draggable.classList.add('dragging');
-                    e.dataTransfer.setData('text/plain', e.target.id);
-                });
-
-                draggable.addEventListener('dragend', () => {
-                    draggable.classList.remove('dragging');
-                });
-            });
-
-            dropZones.forEach(zone => {
-                zone.addEventListener('dragover', e => {
-                    e.preventDefault();
-                    zone.classList.add('drag-over');
-                });
-
-                zone.addEventListener('dragleave', () => {
-                    zone.classList.remove('drag-over');
-                });
-
-                zone.addEventListener('drop', e => {
-                    e.preventDefault();
-                    zone.classList.remove('drag-over');
-                    const id = e.dataTransfer.getData('text');
-                    const draggableElement = document.getElementById(id);
-                    if (draggableElement) {
-                        zone.appendChild(draggableElement);
-                    }
-                });
-            });
-        });
-    </script>
-
+      document.getElementById("result").innerText = result;
+    }
+  </script>
 </body>
 </html>
